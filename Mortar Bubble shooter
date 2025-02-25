@@ -1,1 +1,158 @@
 #Mortar Bubble shooter
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mortar Bubble Shooter</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background: #f0f0f0;
+        }
+        #gameContainer {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1>Mortar Bubble Shooter</h1>
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game variables
+        const mortar = {
+            x: canvas.width / 2,
+            y: canvas.height - 20,
+            angle: -Math.PI / 2, // Straight up initially
+            length: 40
+        };
+
+        let bubbles = [];
+        let projectile = null;
+        const bubbleRadius = 20;
+        const projectileSpeed = 5;
+
+        // Colors for bubbles
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00'];
+
+        // Create initial bubble grid
+        function initBubbles() {
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 8; col++) {
+                    bubbles.push({
+                        x: col * bubbleRadius * 2.1 + bubbleRadius * 2,
+                        y: row * bubbleRadius * 2.1 + bubbleRadius,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        active: true
+                    });
+                }
+            }
+        }
+
+        // Mouse movement for aiming
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            mortar.angle = Math.atan2(canvas.height - mortar.y, mouseX - mortar.x);
+        });
+
+        // Shoot on click
+        canvas.addEventListener('click', () => {
+            if (!projectile) {
+                projectile = {
+                    x: mortar.x,
+                    y: mortar.y,
+                    dx: Math.cos(mortar.angle) * projectileSpeed,
+                    dy: Math.sin(mortar.angle) * projectileSpeed,
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                };
+            }
+        });
+
+        // Game loop
+        function update() {
+            // Update projectile
+            if (projectile) {
+                projectile.x += projectile.dx;
+                projectile.y += projectile.dy;
+
+                // Check collision with bubbles
+                bubbles.forEach(bubble => {
+                    if (bubble.active) {
+                        const dx = projectile.x - bubble.x;
+                        const dy = projectile.y - bubble.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < bubbleRadius * 2) {
+                            bubble.active = false;
+                            projectile = null;
+                        }
+                    }
+                });
+
+                // Remove projectile if off screen
+                if (projectile.x < 0 || projectile.x > canvas.width || 
+                    projectile.y < 0 || projectile.y > canvas.height) {
+                    projectile = null;
+                }
+            }
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw mortar
+            ctx.beginPath();
+            ctx.moveTo(mortar.x, mortar.y);
+            ctx.lineTo(
+                mortar.x + Math.cos(mortar.angle) * mortar.length,
+                mortar.y + Math.sin(mortar.angle) * mortar.length
+            );
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#666633';
+            ctx.stroke();
+
+            // Draw mortar base
+            ctx.beginPath();
+            ctx.arc(mortar.x, mortar.y, 15, 0, Math.PI * 2);
+            ctx.fillStyle = '#666633';
+            ctx.fill();
+
+            // Draw bubbles
+            bubbles.forEach(bubble => {
+                if (bubble.active) {
+                    ctx.beginPath();
+                    ctx.arc(bubble.x, bubble.y, bubbleRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = bubble.color;
+                    ctx.fill();
+                }
+            });
+
+            // Draw projectile
+            if (projectile) {
+                ctx.beginPath();
+                ctx.arc(projectile.x, projectile.y, bubbleRadius, 0, Math.PI * 2);
+                ctx.fillStyle = projectile.color;
+                ctx.fill();
+            }
+        }
+
+        // Main game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        initBubbles();
+        gameLoop();
+    </script>
+</body>
+</html>
